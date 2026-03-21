@@ -144,7 +144,21 @@ input[type="range"] {
 #map-canvas {
   border: 1px solid #30363d;
   border-radius: 4px;
-  cursor: crosshair;
+}
+
+.canvas-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #64b5f6;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.slider-hint {
+  font-size: 0.75rem;
+  color: #6e7681;
+  text-align: center;
+  margin-top: -8px;
 }
 
 .legend {
@@ -167,6 +181,24 @@ input[type="range"] {
   height: 12px;
   border-radius: 2px;
   display: inline-block;
+}
+
+.comparison-panel tbody tr {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.comparison-panel tbody tr:hover {
+  background: rgba(100, 181, 246, 0.1);
+}
+
+.cost-flash {
+  animation: flash 0.4s ease-out;
+}
+
+@keyframes flash {
+  0% { color: #fff; }
+  100% { color: inherit; }
 }
 
 @media (max-width: 900px) {

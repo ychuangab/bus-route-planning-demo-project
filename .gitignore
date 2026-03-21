@@ -42,3 +42,4 @@ OPENSPEC.md
 
 # Root lock file (no root package.json)
 /package-lock.json
+.vercel

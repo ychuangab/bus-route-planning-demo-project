@@ -1,6 +1,14 @@
 import { renderMap } from './renderer.js';
 import { loadResults } from './data.js';
 
+const MAP_NAMES = {
+  1: 'Map 1 — 小規模',
+  2: 'Map 2 — 群聚分布',
+  3: 'Map 3 — 大禁區',
+  4: 'Map 4 — 大規模',
+  5: 'Map 5 — 對角線',
+};
+
 const state = {
   results: null,
   currentMap: 2,
@@ -9,6 +17,13 @@ const state = {
   beta: 1.0,
   gamma: 1.0,
 };
+
+function updateCanvasTitle() {
+  const title = document.getElementById('canvas-title');
+  if (title) {
+    title.textContent = `${MAP_NAMES[state.currentMap] || 'Map ' + state.currentMap} — ${state.currentMethod.toUpperCase()}`;
+  }
+}
 
 function updateDisplay() {
   if (!state.results) return;
@@ -19,8 +34,17 @@ function updateDisplay() {
   if (mapData) {
     renderMap(document.getElementById('map-canvas'), mapData, validResult, state);
   }
+  updateCanvasTitle();
   updateCostPanel(validResult);
   updateComparisonTable();
+}
+
+function flashCostPanel() {
+  const panel = document.getElementById('cost-panel');
+  panel.classList.remove('cost-flash');
+  // Force reflow to restart animation
+  void panel.offsetWidth;
+  panel.classList.add('cost-flash');
 }
 
 function updateCostPanel(result) {
@@ -58,6 +82,11 @@ function updateComparisonTable() {
       <td${highlight}>${costStr}</td>
       <td${highlight}>${covStr}</td>
     `;
+    tr.addEventListener('click', () => {
+      state.currentMethod = m;
+      document.getElementById('method-select').value = m;
+      updateDisplay();
+    });
     tbody.appendChild(tr);
   });
 }
@@ -109,6 +138,7 @@ function recalcCosts() {
   const current = mapResults[state.currentMethod];
   updateCostPanel(current);
   updateComparisonTable();
+  flashCostPanel();
 }
 
 async function init() {
