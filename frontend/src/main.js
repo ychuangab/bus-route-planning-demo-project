@@ -14,18 +14,20 @@ function updateDisplay() {
   if (!state.results) return;
   const mapData = state.results.maps?.[`map${state.currentMap}`];
   const methodResult = state.results.results?.[`map${state.currentMap}`]?.[state.currentMethod];
+  // Only pass method result to renderer if it has valid route data
+  const validResult = (methodResult && methodResult.route && !methodResult.error) ? methodResult : null;
   if (mapData) {
-    renderMap(document.getElementById('map-canvas'), mapData, methodResult, state);
+    renderMap(document.getElementById('map-canvas'), mapData, validResult, state);
   }
-  updateCostPanel(methodResult);
+  updateCostPanel(validResult);
   updateComparisonTable();
 }
 
 function updateCostPanel(result) {
   const setVal = (id, val) => {
-    document.getElementById(id).textContent = val != null ? val.toFixed(1) : '—';
+    document.getElementById(id).textContent = (val != null && isFinite(val)) ? val.toFixed(1) : '—';
   };
-  if (result) {
+  if (result && result.total_cost != null) {
     setVal('cost-route', result.route_cost);
     setVal('cost-walk', result.walk_cost);
     setVal('cost-stop', result.stop_cost);
@@ -49,10 +51,12 @@ function updateComparisonTable() {
     const r = mapResults[m];
     const tr = document.createElement('tr');
     const highlight = m === state.currentMethod ? ' style="color:#64b5f6;font-weight:bold"' : '';
+    const costStr = (r && r.total_cost != null) ? r.total_cost.toFixed(1) : 'N/A';
+    const covStr = (r && r.coverage != null) ? (r.coverage * 100).toFixed(1) + '%' : 'N/A';
     tr.innerHTML = `
       <td${highlight}>${m.toUpperCase()}</td>
-      <td${highlight}>${r ? r.total_cost.toFixed(1) : 'N/A'}</td>
-      <td${highlight}>${r?.coverage != null ? (r.coverage * 100).toFixed(1) + '%' : 'N/A'}</td>
+      <td${highlight}>${costStr}</td>
+      <td${highlight}>${covStr}</td>
     `;
     tbody.appendChild(tr);
   });

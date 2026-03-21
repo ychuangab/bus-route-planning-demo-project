@@ -10,8 +10,9 @@ style: |
     color: #ffffff;
     font-family: 'Segoe UI', system-ui, sans-serif;
   }
-  h1 { color: #64b5f6; font-size: 2.2em; }
-  h2 { color: #90caf9; font-size: 1.6em; }
+  section { font-size: 22px; padding: 40px 50px; }
+  h1 { color: #64b5f6; font-size: 2em; }
+  h2 { color: #90caf9; font-size: 1.5em; margin-bottom: 0.3em; }
   h3 { color: #bbdefb; }
   strong { color: #ffffff; }
   a { color: #64b5f6; }
@@ -19,8 +20,8 @@ style: |
   code { background: rgba(255,255,255,0.1); color: #e0e0e0; padding: 2px 6px; border-radius: 4px; }
   blockquote { border-left: 4px solid #64b5f6; background: rgba(255,255,255,0.06); color: #e0e0e0; padding: 12px 16px; }
   table { background: transparent; border: 1px solid rgba(255,255,255,0.2); border-collapse: collapse; width: 100%; }
-  th { background: rgba(255,255,255,0.1); color: #ffffff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; }
-  td { background: rgba(255,255,255,0.05); color: #ffffff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; }
+  th { background: rgba(255,255,255,0.1); color: #ffffff; border: 1px solid rgba(255,255,255,0.2); padding: 4px 8px; font-size: 0.9em; }
+  td { background: rgba(255,255,255,0.05); color: #ffffff; border: 1px solid rgba(255,255,255,0.2); padding: 4px 8px; font-size: 0.9em; }
   tr { background: transparent !important; }
   li, p { color: #ffffff; }
   em { color: #90caf9; font-style: normal; }
@@ -156,18 +157,14 @@ SA 在大規模問題上穩定性明顯優於 GA
 
 ## 限制與未來方向
 
-**當前限制**：
-- 2D 網格（非真實路網）
-- 單一路線（非多路線網絡）
-- 靜態需求（不考慮時段變化）
-- 均質乘客（不區分類別）
+**當前限制**：2D 網格、單一路線、靜態需求、均質乘客
 
 **未來方向**：
-- 🚌 多路線網絡設計 + 轉乘優化
-- 👥 乘客分類（通勤/老人/學生）+ 差異化權重
-- 📊 整合市場調查數據的需求建模
-- 🗺️ OpenStreetMap 真實路網整合
-- ⚡ 商用 MILP solver (Gurobi) 擴展精確解範圍
+- 多路線網絡設計 + 轉乘優化
+- 乘客分類（通勤/老人/學生）+ 差異化權重
+- 整合市場調查數據的需求建模
+- OpenStreetMap 真實路網整合
+- 商用 MILP solver (Gurobi) 擴展精確解範圍
 
 ---
 
@@ -180,6 +177,6 @@ SA 在大規模問題上穩定性明顯優於 GA
 5. **消融實驗**展示 α/β/γ 的政策意涵
 6. **互動 Demo** 支援即時參數調整與方法比較
 
-> **Demo**: [link] | **Report**: [link] | **GitHub**: [link]
+> **Demo**: bus-route-planning-demo-project.vercel.app
 
 **Thank you!**
