@@ -20,9 +20,9 @@ Bus Route & Stop Placement Optimization — 面試題目二
 
 ## 線上展示
 
-- **互動 Demo**: [待部署]
-- **技術報告**: [待部署]
-- **簡報**: [待部署]
+- **互動 Demo**: https://bus-route-planning-demo-project.vercel.app
+- **技術報告**: https://bus-route-planning-demo-project.vercel.app/report/
+- **簡報**: https://bus-route-planning-demo-project.vercel.app/slides/
 
 ## 技術棧
 

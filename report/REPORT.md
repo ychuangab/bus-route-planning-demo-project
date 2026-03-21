@@ -3,8 +3,8 @@
 > **作者：** Eason Huang
 > **日期：** 2026-03-21
 > **版本：** 1.0
-> **Demo：** [待部署]
-> **原始碼：** [待部署]
+> **Demo：** https://bus-route-planning-demo-project.vercel.app
+> **原始碼：** https://github.com/ychuangab/bus-route-planning-demo-project
 
 ---
 
