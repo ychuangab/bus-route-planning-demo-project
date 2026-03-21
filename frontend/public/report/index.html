@@ -732,7 +732,7 @@
 </tr>
 </tbody></table>
 <blockquote>
-<p>MILP：Map 1 成功求解（0.5s），Map 2 超時後給出非最優解（*標記），Map 3/5 未求解，Map 4 因規模過大跳過</p>
+<p><strong>MILP 說明：</strong> Map 1 成功求解（0.5s）。Map 2 於 60 秒超時後給出非最優解（<em>標記），總成本 2769 甚至高於 Baseline（1693），原因是 MILP 固定 A</em> 最短路徑、僅優化站牌位置，無法像 GA/SA 透過中繼點繞向乘客群聚區，導致站牌遠離乘客、步行成本極高。Map 3/5 在時限內未求解，Map 4 因規模過大（500 人）跳過。</p>
 </blockquote>
 <h3>6.3 覆蓋率比較</h3>
 <table>
@@ -760,7 +760,7 @@
 <td>14.0%</td>
 <td>99.0%</td>
 <td>100.0%</td>
-<td>7.0%</td>
+<td>7.0%*</td>
 </tr>
 <tr>
 <td>Map 3</td>
@@ -787,6 +787,9 @@
 <td>—</td>
 </tr>
 </tbody></table>
+<blockquote>
+<p>*MILP Map 2 覆蓋率僅 7%，低於 Baseline（13%），因超時解將站牌集中於路線中段而非乘客群聚處。</p>
+</blockquote>
 <h3>6.4 GA/SA 穩定性（10 次執行）</h3>
 <table>
 <thead>
