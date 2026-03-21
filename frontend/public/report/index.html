@@ -368,6 +368,9 @@
 </ol>
 <h3>3.4 問題複雜度</h3>
 <p>路線選擇的可能數隨網格大小指數成長，加上站牌的組合選擇，整體問題為 NP-hard。因此需要啟發式與元啟發式方法在合理時間內取得近似最優解。</p>
+<h3>3.5 系統架構</h3>
+<p><img src="assets/figures/fig06-architecture.png" alt="Fig.6 — 問題架構與方法層次圖"></p>
+<p><em>Fig.6：系統三層架構——輸入層（地圖/乘客/端點）、優化層（5 種方法共用 A</em> 引擎）、評估層（成本/覆蓋率/統計）*</p>
 <hr>
 <h2>4. 情境與測試集設計</h2>
 <h3>4.1 設計原則</h3>
@@ -734,6 +737,8 @@
 <blockquote>
 <p><strong>MILP 說明：</strong> Map 1 成功求解（0.5s）。Map 2 於 60 秒超時後給出非最優解（<em>標記），總成本 2769 甚至高於 Baseline（1693），原因是 MILP 固定 A</em> 最短路徑、僅優化站牌位置，無法像 GA/SA 透過中繼點繞向乘客群聚區，導致站牌遠離乘客、步行成本極高。Map 3/5 在時限內未求解，Map 4 因規模過大（500 人）跳過。</p>
 </blockquote>
+<p><img src="assets/figures/fig01-total-cost.png" alt="Fig.1 — 總成本比較柱狀圖"></p>
+<p><em>Fig.1：五種方法在 5 張地圖上的總成本比較。GA/SA 在 Map 2-5 大幅優於 Baseline/Greedy。</em></p>
 <h3>6.3 覆蓋率比較</h3>
 <table>
 <thead>
@@ -790,6 +795,8 @@
 <blockquote>
 <p>*MILP Map 2 覆蓋率僅 7%，低於 Baseline（13%），因超時解將站牌集中於路線中段而非乘客群聚處。</p>
 </blockquote>
+<p><img src="assets/figures/fig02-coverage.png" alt="Fig.2 — 覆蓋率比較柱狀圖"></p>
+<p><em>Fig.2：覆蓋率比較（步行距離 ≤ 10 格）。GA/SA 透過路線偏移大幅提升乘客覆蓋。</em></p>
 <h3>6.4 GA/SA 穩定性（10 次執行）</h3>
 <table>
 <thead>
@@ -825,9 +832,114 @@
 <td>654.5 ± 20.4</td>
 </tr>
 </tbody></table>
-<h3>6.5 分析與討論</h3>
+<p><img src="assets/figures/fig03-stability-boxplot.png" alt="Fig.3 — GA vs SA 穩定性箱型圖"></p>
+<p><em>Fig.3：GA vs SA 穩定性比較。SA 在所有地圖上的標準差均小於 GA，尤其 Map 3/4 差距明顯。</em></p>
+<h3>6.5 執行時間比較</h3>
+<table>
+<thead>
+<tr>
+<th>地圖</th>
+<th>Baseline</th>
+<th>Greedy</th>
+<th>GA</th>
+<th>SA</th>
+<th>MILP</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Map 1 (20人)</td>
+<td>&lt;0.01s</td>
+<td>&lt;0.01s</td>
+<td>3.0s</td>
+<td>3.0s</td>
+<td>0.5s</td>
+</tr>
+<tr>
+<td>Map 2 (100人)</td>
+<td>&lt;0.01s</td>
+<td>0.03s</td>
+<td>42.6s</td>
+<td>22.4s</td>
+<td>60.1s (超時)</td>
+</tr>
+<tr>
+<td>Map 3 (100人)</td>
+<td>&lt;0.01s</td>
+<td>0.04s</td>
+<td>63.4s</td>
+<td>23.7s</td>
+<td>60.2s (超時)</td>
+</tr>
+<tr>
+<td>Map 4 (500人)</td>
+<td>0.01s</td>
+<td>0.91s</td>
+<td>90.1s</td>
+<td>38.5s</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Map 5 (100人)</td>
+<td>0.01s</td>
+<td>0.06s</td>
+<td>52.2s</td>
+<td>24.9s</td>
+<td>64.8s (超時)</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Baseline/Greedy 為毫秒級確定性演算法。SA 在相同規模下比 GA 快約 40-60%，因為 SA 為單解搜索、不需維護族群。MILP 在 Map 2/3/5 均達 60 秒超時上限。</p>
+</blockquote>
+<h3>6.6 MILP 最優性分析（Map 1）</h3>
+<p>Map 1 是唯一 MILP 成功求解的地圖，可作為最優性基準。但需注意：<em><em>MILP 僅優化站牌位置（固定 A</em> 最短路線），而 GA/SA 同時優化路線形狀與站牌位置</em>*，因此 GA/SA 的搜索空間更大，有機會找到 MILP 無法達到的解。</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>總成本</th>
+<th>與 MILP 差距</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>MILP</td>
+<td>222.0</td>
+<td>—</td>
+<td>固定路線下的站牌最優解</td>
+</tr>
+<tr>
+<td>Baseline</td>
+<td>231.0</td>
+<td>+4.1%</td>
+<td>同路線，等距站牌</td>
+</tr>
+<tr>
+<td>Greedy</td>
+<td>220.0</td>
+<td>-0.9%</td>
+<td>同路線，貪心站牌略優於 MILP</td>
+</tr>
+<tr>
+<td>GA (best)</td>
+<td>194.0</td>
+<td><strong>-12.6%</strong></td>
+<td>改變路線形狀，大幅優於 MILP</td>
+</tr>
+<tr>
+<td>SA (best)</td>
+<td>205.0</td>
+<td><strong>-7.7%</strong></td>
+<td>改變路線形狀，優於 MILP</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>關鍵洞察：</strong> GA/SA 的最佳解優於 MILP，並非因為 MILP 求解失敗，而是因為 MILP 固定了 A* 最短路線。這證實了<strong>路線形狀優化</strong>（透過中繼點）對總成本的影響大於站牌位置優化。MILP 在本問題中不能作為全域 ground truth，而是「固定路線下的站牌最優基準」。</p>
+</blockquote>
+<h3>6.7 分析與討論</h3>
 <p><strong>Baseline vs Greedy</strong>：Greedy 只比 Baseline 好約 3-6%。因為兩者共用 A* 最短路徑，差異僅在站牌位置。當乘客偏離路線（如 Map 5），兩者都表現很差。</p>
 <p><strong>GA vs SA</strong>：兩者大幅優於 Baseline/Greedy（Map 2 成本降低 60%+）。關鍵差異在於 GA/SA 可以移動中繼點改變路線形狀，讓路線接近乘客群聚區。</p>
+<p><img src="assets/figures/fig05-route-comparison.png" alt="Fig.5 — Map 2 路線形狀對比"></p>
+<p><em>Fig.5：Baseline 直線路徑（覆蓋率 13%）vs SA 偏移路線（覆蓋率 100%），路線形狀是成本差異的關鍵。</em></p>
 <ul>
 <li>GA 在 Map 2 略勝 SA（全域搜索找到更好的路線形狀）</li>
 <li>SA 在 Map 3-5 穩定性更好（std 更小）</li>
@@ -972,6 +1084,8 @@
 <td>42.0</td>
 </tr>
 </tbody></table>
+<p><img src="assets/figures/fig04-ablation-radar.png" alt="Fig.4 — 消融實驗雷達圖"></p>
+<p><em>Fig.4：五組權重策略的三項成本雷達圖。不同策略在路線/步行/站牌成本間呈現清晰的取捨關係。</em></p>
 <h3>7.3 分析</h3>
 <ul>
 <li><strong>乘客優先 (β=1.0)</strong>：路線大幅偏移接近乘客群聚（路線成本 127 vs 均衡的 115），步行成本增加是因為加權後分母較小</li>
