@@ -81,7 +81,12 @@ const reportHtml = `<!DOCTYPE html>
   img { max-width: 100%; height: auto; display: block; margin: 1em auto; }
   a { color: var(--mid); }
   strong { color: #ffffff; }
+  .katex { font-size: 1.1em; }
 </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
 </head>
 <body>
 ${reportBody}
