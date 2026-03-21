@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Claude Code
+.claude/
+
+# Editor
+.vscode/
+.idea/
+*.sw?
+.DS_Store
+
+# OS
+Thumbs.db
+
+# Env
+*.local
+.env
+.env.*
+
+# Vercel
+.vercel/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OpenSpec (internal design docs)
+_openspec/
+openspec/
+OPENSPEC.md
+
+# Root lock file (no root package.json)
+/package-lock.json

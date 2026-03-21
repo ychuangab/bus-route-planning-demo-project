@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>公車路線規劃 — 互動展示</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>公車路線與站點設置規劃</h1>
+      <p class="subtitle">Bus Route & Stop Placement Optimization</p>
+    </header>
+
+    <div class="main-layout">
+      <div class="controls-panel">
+        <div class="control-group">
+          <label>地圖選擇</label>
+          <select id="map-select">
+            <option value="1">Map 1 — 小規模 (20人)</option>
+            <option value="2" selected>Map 2 — 群聚分布 (100人)</option>
+            <option value="3">Map 3 — 大禁區 (100人)</option>
+            <option value="4">Map 4 — 大規模 (500人)</option>
+            <option value="5">Map 5 — 對角線 (100人)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>優化方法</label>
+          <select id="method-select">
+            <option value="baseline">Baseline</option>
+            <option value="greedy">Greedy</option>
+            <option value="ga" selected>GA</option>
+            <option value="sa">SA</option>
+            <option value="milp">MILP</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>α (路線權重): <span id="alpha-val">1.0</span></label>
+          <input type="range" id="alpha-slider" min="0.1" max="2.0" step="0.1" value="1.0" />
+        </div>
+
+        <div class="control-group">
+          <label>β (步行權重): <span id="beta-val">1.0</span></label>
+          <input type="range" id="beta-slider" min="0.1" max="2.0" step="0.1" value="1.0" />
+        </div>
+
+        <div class="control-group">
+          <label>γ (站牌權重): <span id="gamma-val">1.0</span></label>
+          <input type="range" id="gamma-slider" min="0.1" max="2.0" step="0.1" value="1.0" />
+        </div>
+
+        <div id="cost-panel" class="cost-panel">
+          <h3>成本分析</h3>
+          <div class="cost-row"><span>路線成本</span><span id="cost-route">—</span></div>
+          <div class="cost-row"><span>步行成本</span><span id="cost-walk">—</span></div>
+          <div class="cost-row"><span>站牌成本</span><span id="cost-stop">—</span></div>
+          <div class="cost-row total"><span>總成本</span><span id="cost-total">—</span></div>
+          <div class="cost-row"><span>覆蓋率</span><span id="cost-coverage">—</span></div>
+        </div>
+
+        <div id="comparison-panel" class="comparison-panel">
+          <h3>方法比較</h3>
+          <table id="comparison-table">
+            <thead>
+              <tr>
+                <th>方法</th>
+                <th>總成本</th>
+                <th>覆蓋率</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="canvas-container">
+        <canvas id="map-canvas"></canvas>
+        <div id="legend" class="legend">
+          <div><span class="legend-color" style="background:#4caf50"></span> 起點 A</div>
+          <div><span class="legend-color" style="background:#f44336"></span> 終點 B</div>
+          <div><span class="legend-color" style="background:#2196f3"></span> 路線</div>
+          <div><span class="legend-color" style="background:#ff9800"></span> 站牌</div>
+          <div><span class="legend-color" style="background:#e0e0e0"></span> 乘客</div>
+          <div><span class="legend-color" style="background:#424242"></span> 禁區</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

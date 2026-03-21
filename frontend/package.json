@@ -1,0 +1,17 @@
+{
+  "name": "bus-route-planning-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "sync-docs": "node scripts/sync-docs.mjs",
+    "build": "node scripts/sync-docs.mjs && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@marp-team/marp-cli": "^4.3.1",
+    "marked": "^17.0.5",
+    "vite": "^8.0.0"
+  }
+}

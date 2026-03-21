@@ -1,0 +1,179 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #0d1117;
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+header h1 {
+  color: #64b5f6;
+  font-size: 1.8rem;
+  margin-bottom: 4px;
+}
+
+header .subtitle {
+  color: #90a4ae;
+  font-size: 0.95rem;
+}
+
+.main-layout {
+  display: flex;
+  gap: 24px;
+}
+
+.controls-panel {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.control-group {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.control-group label {
+  display: block;
+  font-size: 0.85rem;
+  color: #8b949e;
+  margin-bottom: 6px;
+}
+
+.control-group select,
+.control-group input[type="range"] {
+  width: 100%;
+}
+
+select {
+  background: #0d1117;
+  color: #e0e0e0;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 0.9rem;
+}
+
+input[type="range"] {
+  accent-color: #64b5f6;
+}
+
+.cost-panel, .comparison-panel {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.cost-panel h3, .comparison-panel h3 {
+  color: #64b5f6;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+}
+
+.cost-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #21262d;
+}
+
+.cost-row.total {
+  font-weight: bold;
+  color: #64b5f6;
+  border-top: 1px solid #30363d;
+  margin-top: 4px;
+  padding-top: 8px;
+}
+
+.comparison-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.comparison-panel th, .comparison-panel td {
+  padding: 4px 6px;
+  text-align: right;
+  border-bottom: 1px solid #21262d;
+}
+
+.comparison-panel th {
+  color: #8b949e;
+  text-align: right;
+}
+
+.comparison-panel th:first-child,
+.comparison-panel td:first-child {
+  text-align: left;
+}
+
+.canvas-container {
+  flex: 1;
+  position: relative;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#map-canvas {
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  cursor: crosshair;
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.legend > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #8b949e;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+@media (max-width: 900px) {
+  .main-layout {
+    flex-direction: column;
+  }
+  .controls-panel {
+    width: 100%;
+  }
+}

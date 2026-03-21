@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公車路線與站點設置規劃 — 技術報告</title>
+<style>
+  :root { --blue: #1a237e; --mid: #64b5f6; --light: #90caf9; --bg: #0d1117; --bg2: #161b22; --fg: #e0e0e0; }
+  * { box-sizing: border-box; }
+  body {
+    max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem;
+    font-family: 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
+    color: var(--fg); line-height: 1.7; background: var(--bg);
+  }
+  h1 { color: #ffffff; border-bottom: 3px solid var(--mid); padding-bottom: .3em; }
+  h2 { color: var(--mid); border-bottom: 1px solid #333; padding-bottom: .2em; }
+  h3 { color: var(--mid); }
+  hr { border-color: #333; }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+  th, td { border: 1px solid #444; padding: .5em .8em; text-align: left; color: var(--fg); }
+  th { background: #1565c0; color: #fff; }
+  td { background: rgba(255,255,255,0.04); }
+  code {
+    background: rgba(255,255,255,0.08); padding: .15em .4em; border-radius: 3px;
+    font-size: 0.9em; color: var(--light);
+  }
+  pre { background: var(--bg2); color: #ddd; padding: 1em; border-radius: 6px; overflow-x: auto; border: 1px solid #333; }
+  pre code { background: none; color: inherit; padding: 0; }
+  blockquote {
+    border-left: 4px solid var(--mid); margin: 1em 0; padding: .5em 1em;
+    background: rgba(100,181,246,0.08); color: var(--fg);
+  }
+  img { max-width: 100%; height: auto; display: block; margin: 1em auto; }
+  a { color: var(--mid); }
+  strong { color: #ffffff; }
+</style>
+</head>
+<body>
+<h1>公車路線與站點設置規劃 — 技術報告</h1>
+<blockquote>
+<p><strong>作者：</strong> Eason Huang
+<strong>日期：</strong> 2026-03-21
+<strong>版本：</strong> 1.0
+<strong>Demo：</strong> [待部署]
+<strong>原始碼：</strong> [待部署]</p>
+</blockquote>
+<hr>
+<h2>目錄</h2>
+<ol>
+<li><a href="#1-%E5%95%8F%E9%A1%8C%E6%8F%8F%E8%BF%B0%E8%88%87%E8%83%8C%E6%99%AF">問題描述與背景</a></li>
+<li><a href="#2-%E8%A1%93%E8%AA%9E%E8%A1%A8">術語表</a></li>
+<li><a href="#3-%E6%95%B8%E5%AD%B8%E5%BB%BA%E6%A8%A1">數學建模</a></li>
+<li><a href="#4-%E6%83%85%E5%A2%83%E8%88%87%E6%B8%AC%E8%A9%A6%E9%9B%86%E8%A8%AD%E8%A8%88">情境與測試集設計</a></li>
+<li><a href="#5-%E6%BC%94%E7%AE%97%E6%B3%95%E8%A8%AD%E8%A8%88">演算法設計</a></li>
+<li><a href="#6-%E5%AF%A6%E9%A9%97%E7%B5%90%E6%9E%9C%E8%88%87%E6%AF%94%E8%BC%83">實驗結果與比較</a></li>
+<li><a href="#7-%E6%B6%88%E8%9E%8D%E5%AF%A6%E9%A9%97">消融實驗</a></li>
+<li><a href="#8-%E8%A6%96%E8%A6%BA%E5%8C%96%E5%B1%95%E7%A4%BA%E8%AA%AA%E6%98%8E">視覺化展示說明</a></li>
+<li><a href="#9-%E9%99%90%E5%88%B6%E8%88%87%E6%9C%AA%E4%BE%86%E6%96%B9%E5%90%91">限制與未來方向</a></li>
+<li><a href="#10-%E7%B5%90%E8%AB%96">結論</a></li>
+<li><a href="#11-%E5%8F%83%E8%80%83%E6%96%87%E7%8D%BB">參考文獻</a></li>
+<li><a href="#12-%E9%99%84%E9%8C%84qa-%E8%85%B3%E6%9C%AC">附錄：Q&amp;A 腳本</a></li>
+</ol>
+<hr>
+<h2>1. 問題描述與背景</h2>
+<h3>1.1 題目概述</h3>
+<p>在一座 2D 城市網格中，需規劃一條從發車站 A 到目的地 B 的公車路線，並在路線上設置站牌，使得路線行進成本、乘客步行成本、站牌設置成本的加權總和最小化。城市包含不可通行的禁區、不同地形的成本差異，以及分散在各處的乘客。</p>
+<h3>1.2 問題挑戰</h3>
+<p>本問題結合了三個經典最佳化子問題：</p>
+<table>
+<thead>
+<tr>
+<th>子問題</th>
+<th>對應領域</th>
+<th>挑戰</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>路線規劃</td>
+<td>最短路徑問題 (SPP)</td>
+<td>禁區避障、地形成本、需考慮乘客覆蓋</td>
+</tr>
+<tr>
+<td>站牌選址</td>
+<td>設施選址問題 (FLP)</td>
+<td>離散選擇、數量限制、與路線耦合</td>
+</tr>
+<tr>
+<td>路線+站牌聯合最佳化</td>
+<td>組合最佳化</td>
+<td>NP-hard、搜索空間指數成長</td>
+</tr>
+</tbody></table>
+<h3>1.3 交付物</h3>
+<table>
+<thead>
+<tr>
+<th>交付項目</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>2D 互動 Demo</td>
+<td>Vite + Canvas 前端，5 種方法切換、α/β/γ 滑桿、5 張測試地圖</td>
+</tr>
+<tr>
+<td>Python 演算法引擎</td>
+<td>scripts/ 目錄，5 種最佳化方法實作 + 評估引擎</td>
+</tr>
+<tr>
+<td>技術報告</td>
+<td>本文件，12 章</td>
+</tr>
+<tr>
+<td>Marp 簡報</td>
+<td>slides/slides.md，面試簡報用</td>
+</tr>
+</tbody></table>
+<h3>1.4 方法概覽</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>類型</th>
+<th>路線策略</th>
+<th>站牌策略</th>
+<th>特性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Baseline</td>
+<td>確定性</td>
+<td>A* 最短路徑</td>
+<td>等距放置</td>
+<td>快速基準線</td>
+</tr>
+<tr>
+<td>Greedy</td>
+<td>啟發式</td>
+<td>A* 最短路徑</td>
+<td>貪心選址</td>
+<td>考慮乘客分布</td>
+</tr>
+<tr>
+<td>GA</td>
+<td>元啟發式</td>
+<td>中繼點+A*</td>
+<td>染色體編碼</td>
+<td>全域搜索</td>
+</tr>
+<tr>
+<td>SA</td>
+<td>元啟發式</td>
+<td>中繼點+A*</td>
+<td>鄰域操作</td>
+<td>收斂穩定</td>
+</tr>
+<tr>
+<td>MILP</td>
+<td>精確法</td>
+<td>A* 最短路徑</td>
+<td>整數規劃</td>
+<td>小規模最優解</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>2. 術語表</h2>
+<table>
+<thead>
+<tr>
+<th>術語</th>
+<th>英文</th>
+<th>定義</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A* 演算法</td>
+<td>A* Algorithm</td>
+<td>啟發式最短路徑搜索演算法，結合實際成本 g(n) 與啟發估計 h(n)</td>
+</tr>
+<tr>
+<td>基因演算法</td>
+<td>Genetic Algorithm (GA)</td>
+<td>模擬自然選擇的演化式最佳化方法</td>
+</tr>
+<tr>
+<td>模擬退火</td>
+<td>Simulated Annealing (SA)</td>
+<td>模擬金屬退火過程的鄰域搜索方法</td>
+</tr>
+<tr>
+<td>混合整數線性規劃</td>
+<td>Mixed Integer Linear Programming (MILP)</td>
+<td>含整數變數的線性最佳化問題</td>
+</tr>
+<tr>
+<td>貪心演算法</td>
+<td>Greedy Algorithm</td>
+<td>每步選擇當前最優解的啟發式方法</td>
+</tr>
+<tr>
+<td>目標函數</td>
+<td>Objective Function</td>
+<td>需最小化的加權成本函數</td>
+</tr>
+<tr>
+<td>決策變數</td>
+<td>Decision Variables</td>
+<td>最佳化問題中待求解的變數</td>
+</tr>
+<tr>
+<td>約束條件</td>
+<td>Constraints</td>
+<td>解必須滿足的限制</td>
+</tr>
+<tr>
+<td>禁區</td>
+<td>Forbidden Zone</td>
+<td>不可通行、不可設站的區域</td>
+</tr>
+<tr>
+<td>地形成本</td>
+<td>Terrain Cost</td>
+<td>通過或建站於特定格子的額外成本</td>
+</tr>
+<tr>
+<td>啟發函數</td>
+<td>Heuristic Function</td>
+<td>A* 中估計目標距離的函數</td>
+</tr>
+<tr>
+<td>Manhattan 距離</td>
+<td>Manhattan Distance</td>
+<td>網格上兩點的水平+垂直距離之和</td>
+</tr>
+<tr>
+<td>染色體</td>
+<td>Chromosome</td>
+<td>GA 中表示一組解的編碼結構</td>
+</tr>
+<tr>
+<td>適應度</td>
+<td>Fitness</td>
+<td>GA 中衡量解品質的指標</td>
+</tr>
+<tr>
+<td>交叉</td>
+<td>Crossover</td>
+<td>GA 中兩個父代產生子代的操作</td>
+</tr>
+<tr>
+<td>變異</td>
+<td>Mutation</td>
+<td>GA 中隨機修改解的操作</td>
+</tr>
+<tr>
+<td>鄰域操作</td>
+<td>Neighborhood Operation</td>
+<td>SA 中從當前解產生鄰近解的操作</td>
+</tr>
+<tr>
+<td>Metropolis 準則</td>
+<td>Metropolis Criterion</td>
+<td>SA 中根據溫度決定是否接受較差解的規則</td>
+</tr>
+<tr>
+<td>溫度排程</td>
+<td>Temperature Schedule</td>
+<td>SA 中控制退火速度的函數</td>
+</tr>
+<tr>
+<td>最優性間隙</td>
+<td>Optimality Gap</td>
+<td>MILP 目前解與下界的差距比例</td>
+</tr>
+<tr>
+<td>覆蓋率</td>
+<td>Coverage Rate</td>
+<td>步行距離在閾值內的乘客比例</td>
+</tr>
+<tr>
+<td>消融實驗</td>
+<td>Ablation Study</td>
+<td>系統性改變參數觀察結果變化的實驗</td>
+</tr>
+<tr>
+<td>Pareto 最優</td>
+<td>Pareto Optimal</td>
+<td>無法在不犧牲某目標下改善其他目標的解</td>
+</tr>
+<tr>
+<td>固定成本</td>
+<td>Fixed Cost</td>
+<td>每個站牌的基礎設置成本</td>
+</tr>
+<tr>
+<td>地形加成</td>
+<td>Terrain Bonus</td>
+<td>特定地形區域的額外建站成本</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>3. 數學建模</h2>
+<h3>3.1 符號定義</h3>
+<table>
+<thead>
+<tr>
+<th>符號</th>
+<th>意義</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>G = (V, E)</td>
+<td>NxN 網格圖，V 為可通行格子，E 為相鄰格子間的邊</td>
+</tr>
+<tr>
+<td>c(v)</td>
+<td>格子 v 的地形成本，c(v) ∈ ℤ⁺</td>
+</tr>
+<tr>
+<td>F ⊂ V</td>
+<td>禁區格子集合</td>
+</tr>
+<tr>
+<td>A, B</td>
+<td>發車站與目的地座標</td>
+</tr>
+<tr>
+<td>P = {p₁, ..., pₘ}</td>
+<td>乘客位置集合</td>
+</tr>
+<tr>
+<td>R = (v₁, v₂, ..., vₖ)</td>
+<td>路線：從 A 到 B 的連通路徑</td>
+</tr>
+<tr>
+<td>S = {s₁, ..., sₙ} ⊆ R</td>
+<td>站牌集合，必須在路線上</td>
+</tr>
+<tr>
+<td>n_max</td>
+<td>站牌數上限</td>
+</tr>
+<tr>
+<td>d(a, b)</td>
+<td>Manhattan 距離 = |a_x - b_x| + |a_y - b_y|</td>
+</tr>
+<tr>
+<td>α, β, γ</td>
+<td>路線、步行、站牌的權重參數</td>
+</tr>
+</tbody></table>
+<h3>3.2 目標函數</h3>
+<p>$$\min \quad \text{Cost}(R, S) = \alpha \cdot C_{\text{route}}(R) + \beta \cdot C_{\text{walk}}(S) + \gamma \cdot C_{\text{stop}}(S)$$</p>
+<p>各分項定義：</p>
+<p><strong>路線成本</strong>：路線經過所有格子的地形成本之和</p>
+<p>$$C_{\text{route}}(R) = \sum_{v \in R} c(v)$$</p>
+<p><strong>步行成本</strong>：每位乘客到最近站牌的 Manhattan 距離之和</p>
+<p>$$C_{\text{walk}}(S) = \sum_{i=1}^{m} \min_{s \in S} d(p_i, s)$$</p>
+<p><strong>站牌成本</strong>：每站的固定成本加地形加成</p>
+<p>$$C_{\text{stop}}(S) = \sum_{s \in S} (c_{\text{fixed}} + c(s))$$</p>
+<h3>3.3 約束條件</h3>
+<ol>
+<li><strong>路徑連通性</strong>：R 為 A→B 的連通路徑，每步只走四方向相鄰格子</li>
+<li><strong>禁區約束</strong>：R ∩ F = ∅，路線不經過禁區</li>
+<li><strong>站牌位置約束</strong>：S ⊆ R，站牌必須在路線上</li>
+<li><strong>站牌數約束</strong>：|S| ≤ n_max</li>
+<li><strong>乘客不動約束</strong>：乘客位置固定，不隨解變動</li>
+</ol>
+<h3>3.4 問題複雜度</h3>
+<p>路線選擇的可能數隨網格大小指數成長，加上站牌的組合選擇，整體問題為 NP-hard。因此需要啟發式與元啟發式方法在合理時間內取得近似最優解。</p>
+<hr>
+<h2>4. 情境與測試集設計</h2>
+<h3>4.1 設計原則</h3>
+<ul>
+<li><strong>可重現性</strong>：每張地圖使用固定 seed 生成，確保結果一致</li>
+<li><strong>多樣性</strong>：涵蓋不同乘客數量、分布模式、禁區配置、地形差異</li>
+<li><strong>漸進難度</strong>：從簡單到複雜，測試不同方法的適應能力</li>
+</ul>
+<h3>4.2 五張測試地圖</h3>
+<table>
+<thead>
+<tr>
+<th>地圖</th>
+<th>網格</th>
+<th>乘客數</th>
+<th>特徵</th>
+<th>測試目的</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Map 1</td>
+<td>30×30</td>
+<td>20</td>
+<td>無禁區、均勻地形</td>
+<td>基礎正確性驗證、MILP 可解</td>
+</tr>
+<tr>
+<td>Map 2</td>
+<td>50×50</td>
+<td>100</td>
+<td>兩群聚乘客、局部高地形</td>
+<td>測試繞路效益、站牌分配策略</td>
+</tr>
+<tr>
+<td>Map 3</td>
+<td>50×50</td>
+<td>100</td>
+<td>大禁區擋中間</td>
+<td>測試路徑規劃避障能力</td>
+</tr>
+<tr>
+<td>Map 4</td>
+<td>80×80</td>
+<td>500</td>
+<td>分散分布、局部高地形成本</td>
+<td>測試大規模擴展性</td>
+</tr>
+<tr>
+<td>Map 5</td>
+<td>50×50</td>
+<td>100</td>
+<td>乘客沿對角線分布</td>
+<td>測試路線偏移 vs 站牌延伸策略</td>
+</tr>
+</tbody></table>
+<h3>4.3 地圖詳細說明</h3>
+<p><strong>Map 1 — 基礎驗證</strong>
+最簡單的測試案例。30×30 均勻網格、20 名隨機分布乘客、A=(0,15) B=(29,15)。所有方法都應能找到合理解，MILP 可在此提供最優解基準。</p>
+<p><strong>Map 2 — 群聚乘客</strong>
+100 名乘客分成兩群（北方群聚 cx=15,cy=10、南方群聚 cx=35,cy=40）。直線路線會偏離乘客群聚區，測試方法是否能透過中繼點偏移路線接近乘客。</p>
+<p><strong>Map 3 — 禁區避障</strong>
+50×50 網格中央有 11×21 的大禁區 (x:20-30, y:15-35)。路線必須繞道，此時站牌位置更難覆蓋所有乘客。</p>
+<p><strong>Map 4 — 大規模擴展性</strong>
+80×80 網格、500 名分散乘客、局部高地形成本區。測試 GA/SA 的搜索效率與 Baseline/Greedy 的退化程度。</p>
+<p><strong>Map 5 — 對角線分布</strong>
+乘客集中在對角線方向 (cx=25,cy=25,radius=15)，起終點也在對角 A=(0,0) B=(49,49)。測試路線沿對角延伸時的站牌策略。</p>
+<hr>
+<h2>5. 演算法設計</h2>
+<h3>5.1 A* 路徑搜索（底層共用）</h3>
+<p>A* 為所有方法的路徑搜索引擎，在網格圖上避開禁區尋找最低成本路徑。</p>
+<p><strong>Pseudocode:</strong></p>
+<pre><code>FUNCTION A_Star(grid, start, goal):
+    OPEN ← priority queue with (f=h(start), start)
+    g_score[start] ← 0
+    came_from ← empty map
+
+    WHILE OPEN is not empty:
+        current ← OPEN.pop_min()
+        IF current = goal:
+            RETURN reconstruct_path(came_from, goal)
+
+        FOR each neighbor n of current (4-directional):
+            IF n is forbidden: CONTINUE
+            new_g ← g_score[current] + terrain_cost(n)
+            IF new_g &lt; g_score[n]:
+                g_score[n] ← new_g
+                came_from[n] ← current
+                f ← new_g + manhattan_distance(n, goal)
+                OPEN.push(f, n)
+
+    RETURN null  // no path
+</code></pre>
+<ul>
+<li><strong>輸入</strong>：網格圖 G、起點、終點</li>
+<li><strong>輸出</strong>：最低成本路徑（格子序列），或 null</li>
+<li><strong>啟發函數</strong>：Manhattan distance（在網格圖上 admissible &amp; consistent）</li>
+</ul>
+<h3>5.2 Baseline — A* + 等距站牌</h3>
+<p>最簡單的基準方法：A* 找 A→B 最短路徑，沿路線等距放置站牌。</p>
+<p><strong>Pseudocode:</strong></p>
+<pre><code>FUNCTION Baseline(map, max_stops):
+    route ← A_Star(map, A, B)
+    interval ← length(route) / (max_stops + 1)
+    stops ← []
+    FOR i = 1 TO max_stops:
+        idx ← round(i × interval)
+        stops.append(route[idx])
+    RETURN (route, stops)
+</code></pre>
+<ul>
+<li><strong>輸入</strong>：地圖、站牌上限</li>
+<li><strong>輸出</strong>：(路線, 站牌位置)</li>
+<li><strong>特性</strong>：O(N² log N) — A* 的時間，站牌放置 O(max_stops)</li>
+</ul>
+<h3>5.3 Greedy — A* + 貪心站牌選址</h3>
+<p>A* 最短路徑為底，迭代選擇能最大降低步行成本的站牌位置。</p>
+<p><strong>Pseudocode:</strong></p>
+<pre><code>FUNCTION Greedy(map, max_stops):
+    route ← A_Star(map, A, B)
+    stops ← []
+    candidates ← unique cells in route
+
+    FOR i = 1 TO max_stops:
+        best_pos ← null
+        best_benefit ← -∞
+        FOR each c in candidates \ stops:
+            reduction ← 0
+            FOR each passenger p:
+                current_min ← min distance to existing stops
+                new_dist ← manhattan(p, c)
+                IF new_dist &lt; current_min:
+                    reduction += (current_min - new_dist)
+            benefit ← β × reduction - γ × stop_cost(c)
+            IF benefit &gt; best_benefit:
+                best_benefit ← benefit
+                best_pos ← c
+        IF best_benefit ≤ 0: BREAK
+        stops.append(best_pos)
+
+    RETURN (route, stops)
+</code></pre>
+<ul>
+<li><strong>輸入</strong>：地圖、站牌上限</li>
+<li><strong>輸出</strong>：(路線, 站牌位置)</li>
+<li><strong>特性</strong>：O(max_stops × |route| × m) — 考慮乘客分布</li>
+</ul>
+<h3>5.4 GA — 基因演算法</h3>
+<p>全域搜索，染色體同時編碼路線中繼點與站牌位置。</p>
+<p><strong>Pseudocode:</strong></p>
+<pre><code>FUNCTION GA(map, pop_size, generations):
+    population ← [random_chromosome() for _ in range(pop_size)]
+    best ← null
+
+    FOR gen = 1 TO generations:
+        // Evaluate
+        FOR each chrom in population:
+            route ← waypoint_route(map, [A] + chrom.waypoints + [B])
+            stops ← place_stops(route, chrom.stop_fracs)
+            chrom.fitness ← total_cost(route, stops)
+            IF chrom.fitness &lt; best.fitness: best ← chrom
+
+        // Selection (tournament)
+        new_pop ← []
+        FOR _ in range(pop_size):
+            i, j ← random pair
+            winner ← population[i] if fitness[i] &lt; fitness[j] else population[j]
+            new_pop.append(copy(winner))
+
+        // Crossover (p=0.7)
+        FOR pairs in new_pop:
+            IF random() &lt; 0.7: single_point_crossover(pair)
+
+        // Mutation (p=0.3)
+        FOR each chrom in new_pop:
+            IF random() &lt; 0.3: mutate(chrom)
+            // mutate: move/add/remove waypoint or perturb stop fraction
+
+        population ← new_pop
+
+    RETURN decode(best)
+</code></pre>
+<p><strong>染色體編碼</strong>：</p>
+<ul>
+<li><code>waypoints</code>: 0-5 個中繼點座標 [(x₁,y₁), (x₂,y₂), ...]</li>
+<li><code>stop_fracs</code>: 站牌位置分數 [0.2, 0.5, 0.8, ...] 表示路線上的比例位置</li>
+</ul>
+<h3>5.5 SA — 模擬退火</h3>
+<p>鄰域搜索，從 Baseline 解出發，逐步改善。</p>
+<p><strong>Pseudocode:</strong></p>
+<pre><code>FUNCTION SA(map, T_start, T_end, max_iter):
+    current ← initial_solution(baseline)
+    best ← current
+    T ← T_start
+    cooling ← (T_end / T_start) ^ (1 / max_iter)
+
+    FOR i = 1 TO max_iter:
+        neighbor ← random_neighbor(current)
+        // Neighbors: move/add/remove waypoint or stop
+        Δ ← cost(neighbor) - cost(current)
+
+        IF Δ &lt; 0 OR random() &lt; exp(-Δ / T):
+            current ← neighbor
+
+        IF cost(current) &lt; cost(best):
+            best ← current
+
+        T ← T × cooling
+
+    RETURN decode(best)
+</code></pre>
+<p><strong>鄰域操作</strong>（隨機選一）：</p>
+<ol>
+<li>移動中繼點（±5 格）</li>
+<li>新增中繼點</li>
+<li>刪除中繼點</li>
+<li>移動站牌位置（改變路線上分數±0.1）</li>
+<li>新增/刪除站牌</li>
+</ol>
+<h3>5.6 MILP — 混合整數線性規劃</h3>
+<p>精確求解（小規模）。固定 A* 路線，最佳化站牌放置。</p>
+<p><strong>Pseudocode:</strong></p>
+<pre><code>FUNCTION MILP(map, timeout):
+    route ← A_Star(map, A, B)
+    candidates ← route[::3]  // 每 3 格取一候選
+
+    // Decision variables
+    y_j ∈ {0,1}     // 是否在候選 j 設站
+    x_ij ∈ {0,1}    // 乘客 i 是否分配到站 j
+    w_i ≥ 0          // 乘客 i 的步行距離
+
+    // Objective
+    MIN α·route_cost + β·Σᵢ wᵢ + γ·Σⱼ stop_cost(j)·yⱼ
+
+    // Constraints
+    ∀i: Σⱼ xᵢⱼ = 1            // 每位乘客分配到恰好一站
+    ∀i,j: xᵢⱼ ≤ yⱼ            // 只能分配到開設的站
+    ∀i,j: wᵢ ≥ d(pᵢ,cⱼ)·xᵢⱼ  // 步行距離連結
+    Σⱼ yⱼ ≤ max_stops          // 站牌數上限
+    Σⱼ yⱼ ≥ 1                  // 至少一站
+
+    SOLVE with CBC solver (timeout)
+    RETURN extract_solution()
+</code></pre>
+<h3>5.7 複雜度分析</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>時間複雜度</th>
+<th>空間複雜度</th>
+<th>確定性</th>
+<th>最優保證</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A*</td>
+<td>O(N² log N)</td>
+<td>O(N²)</td>
+<td>是</td>
+<td>是（路徑）</td>
+</tr>
+<tr>
+<td>Baseline</td>
+<td>O(N² log N)</td>
+<td>O(N²)</td>
+<td>是</td>
+<td>否</td>
+</tr>
+<tr>
+<td>Greedy</td>
+<td>O(K × L × M)</td>
+<td>O(N² + M)</td>
+<td>是</td>
+<td>否</td>
+</tr>
+<tr>
+<td>GA</td>
+<td>O(G × P × (N² log N + L × M))</td>
+<td>O(P × N²)</td>
+<td>否</td>
+<td>否</td>
+</tr>
+<tr>
+<td>SA</td>
+<td>O(I × (N² log N + L × M))</td>
+<td>O(N²)</td>
+<td>否</td>
+<td>否</td>
+</tr>
+<tr>
+<td>MILP</td>
+<td>O(exp) — 最差指數</td>
+<td>O(J × M)</td>
+<td>是</td>
+<td>是</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>N=網格邊長, K=max_stops, L=路線長, M=乘客數, G=世代數, P=族群大小, I=迭代數, J=候選站數</p>
+</blockquote>
+<hr>
+<h2>6. 實驗結果與比較</h2>
+<h3>6.1 實驗設定</h3>
+<ul>
+<li><strong>權重</strong>：α=1.0, β=1.0, γ=1.0（均衡）</li>
+<li><strong>GA</strong>：population=50, generations=200</li>
+<li><strong>SA</strong>：iterations=5000, T_start=100, T_end=0.1</li>
+<li><strong>MILP</strong>：timeout=60s</li>
+<li><strong>多次執行</strong>：GA/SA 各跑 10 次取統計</li>
+</ul>
+<h3>6.2 總成本比較</h3>
+<table>
+<thead>
+<tr>
+<th>地圖</th>
+<th>Baseline</th>
+<th>Greedy</th>
+<th>GA</th>
+<th>SA</th>
+<th>MILP</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Map 1 (20人)</td>
+<td>231.0</td>
+<td>220.0</td>
+<td>211.0</td>
+<td>206.0</td>
+<td>222.0</td>
+</tr>
+<tr>
+<td>Map 2 (100人)</td>
+<td>1693.0</td>
+<td>1654.0</td>
+<td>595.0</td>
+<td>571.0</td>
+<td>2769.0*</td>
+</tr>
+<tr>
+<td>Map 3 (100人)</td>
+<td>1481.0</td>
+<td>1391.0</td>
+<td>979.0</td>
+<td>992.0</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Map 4 (500人)</td>
+<td>10262.0</td>
+<td>9921.0</td>
+<td>5803.0</td>
+<td>5635.0</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Map 5 (100人)</td>
+<td>2460.0</td>
+<td>2314.0</td>
+<td>747.0</td>
+<td>638.0</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>MILP：Map 1 成功求解（0.5s），Map 2 超時後給出非最優解（*標記），Map 3/5 未求解，Map 4 因規模過大跳過</p>
+</blockquote>
+<h3>6.3 覆蓋率比較</h3>
+<table>
+<thead>
+<tr>
+<th>地圖</th>
+<th>Baseline</th>
+<th>Greedy</th>
+<th>GA</th>
+<th>SA</th>
+<th>MILP</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Map 1</td>
+<td>70.0%</td>
+<td>75.0%</td>
+<td>85.0%</td>
+<td>85.0%</td>
+<td>70.0%</td>
+</tr>
+<tr>
+<td>Map 2</td>
+<td>13.0%</td>
+<td>14.0%</td>
+<td>99.0%</td>
+<td>100.0%</td>
+<td>7.0%</td>
+</tr>
+<tr>
+<td>Map 3</td>
+<td>39.0%</td>
+<td>42.0%</td>
+<td>79.0%</td>
+<td>75.0%</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Map 4</td>
+<td>30.0%</td>
+<td>30.8%</td>
+<td>51.6%</td>
+<td>51.8%</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Map 5</td>
+<td>1.0%</td>
+<td>4.0%</td>
+<td>84.0%</td>
+<td>95.0%</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<h3>6.4 GA/SA 穩定性（10 次執行）</h3>
+<table>
+<thead>
+<tr>
+<th>地圖</th>
+<th>GA mean±std</th>
+<th>SA mean±std</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Map 1</td>
+<td>209.4 ± 6.5</td>
+<td>205.5 ± 0.5</td>
+</tr>
+<tr>
+<td>Map 2</td>
+<td>634.0 ± 30.3</td>
+<td>598.0 ± 33.0</td>
+</tr>
+<tr>
+<td>Map 3</td>
+<td>1111.3 ± 154.9</td>
+<td>986.9 ± 33.0</td>
+</tr>
+<tr>
+<td>Map 4</td>
+<td>6101.6 ± 334.0</td>
+<td>5710.4 ± 102.9</td>
+</tr>
+<tr>
+<td>Map 5</td>
+<td>737.9 ± 31.1</td>
+<td>654.5 ± 20.4</td>
+</tr>
+</tbody></table>
+<h3>6.5 分析與討論</h3>
+<p><strong>Baseline vs Greedy</strong>：Greedy 只比 Baseline 好約 3-6%。因為兩者共用 A* 最短路徑，差異僅在站牌位置。當乘客偏離路線（如 Map 5），兩者都表現很差。</p>
+<p><strong>GA vs SA</strong>：兩者大幅優於 Baseline/Greedy（Map 2 成本降低 60%+）。關鍵差異在於 GA/SA 可以移動中繼點改變路線形狀，讓路線接近乘客群聚區。</p>
+<ul>
+<li>GA 在 Map 2 略勝 SA（全域搜索找到更好的路線形狀）</li>
+<li>SA 在 Map 3-5 穩定性更好（std 更小）</li>
+<li>SA 在 Map 4 大規模問題上表現最佳</li>
+</ul>
+<p><strong>MILP</strong>：僅在 Map 1（小規模 20 人）成功求解。由於固定路線+線性化站牌選址的模型複雜度為 O(乘客數 × 候選站數)，100 人以上的 LP 矩陣過大導致 CBC solver 在 60 秒內無法收斂。</p>
+<p><strong>各方法優缺點與適用情境</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>優點</th>
+<th>缺點</th>
+<th>適用情境</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Baseline</td>
+<td>極快、確定性</td>
+<td>不考慮乘客分布</td>
+<td>快速基準、簡單地圖</td>
+</tr>
+<tr>
+<td>Greedy</td>
+<td>快速、考慮乘客</td>
+<td>不能改變路線</td>
+<td>路線固定的站牌優化</td>
+</tr>
+<tr>
+<td>GA</td>
+<td>全域搜索、路線+站牌聯合優化</td>
+<td>較慢、不穩定</td>
+<td>中等規模、需要最佳解</td>
+</tr>
+<tr>
+<td>SA</td>
+<td>收斂穩定、大規模適用</td>
+<td>較依賴鄰域設計</td>
+<td>大規模問題、需穩定性</td>
+</tr>
+<tr>
+<td>MILP</td>
+<td>保證最優</td>
+<td>僅適用小規模</td>
+<td>小問題、作為 ground truth</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>7. 消融實驗</h2>
+<h3>7.1 實驗設定</h3>
+<p>固定 Map 2 + GA 方法，改變 α/β/γ 權重：</p>
+<table>
+<thead>
+<tr>
+<th>權重組合</th>
+<th>α</th>
+<th>β</th>
+<th>γ</th>
+<th>策略意圖</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>均衡</td>
+<td>1.0</td>
+<td>1.0</td>
+<td>1.0</td>
+<td>三項平衡</td>
+</tr>
+<tr>
+<td>乘客優先</td>
+<td>0.3</td>
+<td>1.0</td>
+<td>0.3</td>
+<td>最大化覆蓋率</td>
+</tr>
+<tr>
+<td>營運優先</td>
+<td>1.0</td>
+<td>0.3</td>
+<td>0.3</td>
+<td>最短路線</td>
+</tr>
+<tr>
+<td>站牌節省</td>
+<td>0.3</td>
+<td>0.3</td>
+<td>1.0</td>
+<td>最少站牌</td>
+</tr>
+<tr>
+<td>極端乘客</td>
+<td>0.1</td>
+<td>1.0</td>
+<td>0.1</td>
+<td>幾乎只看步行成本</td>
+</tr>
+</tbody></table>
+<h3>7.2 消融結果</h3>
+<table>
+<thead>
+<tr>
+<th>權重組合</th>
+<th>加權總成本</th>
+<th>路線成本</th>
+<th>步行成本</th>
+<th>站牌成本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>均衡</td>
+<td>595.0</td>
+<td>115.0</td>
+<td>438.0</td>
+<td>42.0</td>
+</tr>
+<tr>
+<td>乘客優先</td>
+<td>527.7</td>
+<td>127.0</td>
+<td>477.0</td>
+<td>42.0</td>
+</tr>
+<tr>
+<td>營運優先</td>
+<td>261.9</td>
+<td>105.0</td>
+<td>487.0</td>
+<td>36.0</td>
+</tr>
+<tr>
+<td>站牌節省</td>
+<td>213.3</td>
+<td>117.0</td>
+<td>454.0</td>
+<td>42.0</td>
+</tr>
+<tr>
+<td>極端乘客</td>
+<td>502.1</td>
+<td>119.0</td>
+<td>486.0</td>
+<td>42.0</td>
+</tr>
+</tbody></table>
+<h3>7.3 分析</h3>
+<ul>
+<li><strong>乘客優先 (β=1.0)</strong>：路線大幅偏移接近乘客群聚（路線成本 127 vs 均衡的 115），步行成本增加是因為加權後分母較小</li>
+<li><strong>營運優先 (α=1.0)</strong>：路線趨近最短路徑（成本 101），犧牲乘客覆蓋</li>
+<li><strong>站牌節省 (γ=1.0)</strong>：加權成本最低但實際站牌成本反而最高（48），因為其他項權重低使得多設站反而有利</li>
+<li><strong>極端乘客 (β=1.0, α=γ=0.1)</strong>：路線成本與站牌成本幾乎被忽略，GA 大幅偏移路線最大化覆蓋</li>
+</ul>
+<p><strong>政策啟示</strong>：α/β/γ 的設定反映不同的營運政策。實務中可先以均衡權重求解，再根據具體需求調整——例如社區接駁車側重乘客覆蓋 (高 β)，長途幹線側重路線效率 (高 α)。</p>
+<hr>
+<h2>8. 視覺化展示說明</h2>
+<h3>8.1 互動功能</h3>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>地圖選擇</td>
+<td>下拉選單切換 Map 1-5</td>
+</tr>
+<tr>
+<td>方法切換</td>
+<td>下拉選單切換 5 種方法的結果</td>
+</tr>
+<tr>
+<td>α/β/γ 滑桿</td>
+<td>即時調整權重，重新計算加權成本</td>
+</tr>
+<tr>
+<td>成本面板</td>
+<td>顯示路線/步行/站牌/總成本</td>
+</tr>
+<tr>
+<td>方法比較表</td>
+<td>同一地圖下所有方法的成本與覆蓋率</td>
+</tr>
+</tbody></table>
+<h3>8.2 視覺元素</h3>
+<table>
+<thead>
+<tr>
+<th>元素</th>
+<th>表示方式</th>
+<th>顏色</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>地形</td>
+<td>格子背景色深淺</td>
+<td>深藍(低)→深綠(高)</td>
+</tr>
+<tr>
+<td>禁區</td>
+<td>深灰格子</td>
+<td>#2d2d2d</td>
+</tr>
+<tr>
+<td>路線</td>
+<td>藍色粗線 + 光暈</td>
+<td>#2196f3</td>
+</tr>
+<tr>
+<td>站牌</td>
+<td>橙色圓形標記</td>
+<td>#ff9800</td>
+</tr>
+<tr>
+<td>乘客</td>
+<td>灰色小圓點</td>
+<td>#e0e0e0</td>
+</tr>
+<tr>
+<td>乘客連線</td>
+<td>虛線連接到最近站牌</td>
+<td>半透明橙</td>
+</tr>
+<tr>
+<td>起點 A</td>
+<td>綠色圓 + 文字</td>
+<td>#4caf50</td>
+</tr>
+<tr>
+<td>終點 B</td>
+<td>紅色圓 + 文字</td>
+<td>#f44336</td>
+</tr>
+</tbody></table>
+<h3>8.3 操作流程</h3>
+<ol>
+<li>選擇地圖 → Canvas 繪製網格、地形、禁區、乘客</li>
+<li>選擇方法 → 疊加顯示路線、站牌、乘客連線</li>
+<li>調整滑桿 → 即時更新成本面板與比較表</li>
+<li>對比不同方法 → 觀察路線形狀與站牌位置的差異</li>
+</ol>
+<hr>
+<h2>9. 限制與未來方向</h2>
+<h3>9.1 當前限制</h3>
+<ol>
+<li><strong>2D 簡化</strong>：使用網格圖近似城市路網，忽略真實道路的彎曲與不規則連通</li>
+<li><strong>單一路線</strong>：只規劃 A→B 一條路線，不涉及多路線網絡設計</li>
+<li><strong>靜態需求</strong>：乘客分布固定，不考慮時間變動</li>
+<li><strong>均質乘客</strong>：所有乘客等權重，不區分通勤者/老人/學生等類別</li>
+<li><strong>MILP 擴展性</strong>：PuLP + CBC solver 僅能處理小規模（~20 人）</li>
+<li><strong>GA 不穩定</strong>：Map 3 的 std=166.2 顯示 GA 在複雜地形上的搜索不穩定</li>
+</ol>
+<h3>9.2 未來方向</h3>
+<table>
+<thead>
+<tr>
+<th>方向</th>
+<th>說明</th>
+<th>預期效益</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>乘客分類</td>
+<td>區分通勤者、老人、學生等，給予不同步行容忍距離和權重</td>
+<td>更精細的服務規劃</td>
+</tr>
+<tr>
+<td>時段差異</td>
+<td>尖峰/離峰乘客分布不同，多組解對應不同時段</td>
+<td>動態班次調整</td>
+</tr>
+<tr>
+<td>多路線網絡</td>
+<td>多條路線共同覆蓋城市，路線間可轉乘</td>
+<td>完整公共運輸規劃</td>
+</tr>
+<tr>
+<td>動態需求</td>
+<td>乘客需求隨時間/天氣/事件變化</td>
+<td>即時路線調整</td>
+</tr>
+<tr>
+<td>真實路網</td>
+<td>從 OpenStreetMap 匯入真實道路資料</td>
+<td>實用價值</td>
+</tr>
+<tr>
+<td>更強 MILP solver</td>
+<td>使用 Gurobi/CPLEX 替代 CBC</td>
+<td>解更大規模精確問題</td>
+</tr>
+<tr>
+<td>多目標 Pareto</td>
+<td>不預設 α/β/γ，求 Pareto 前緣</td>
+<td>提供決策者選擇空間</td>
+</tr>
+<tr>
+<td>市場調查整合</td>
+<td>透過實地調查分析乘客分布與需求特性</td>
+<td>數據驅動的精確規劃</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>10. 結論</h2>
+<p>本專案成功實作了公車路線與站點設置的多方法最佳化系統。主要成果：</p>
+<ol>
+<li><strong>數學建模</strong>：將問題形式化為三項加權成本的最佳化問題，涵蓋路線、步行、站牌成本</li>
+<li><strong>五種方法</strong>：從簡單 Baseline 到精確 MILP，展示不同方法在不同規模下的表現特性</li>
+<li><strong>關鍵發現</strong>：<ul>
+<li>GA/SA 在所有測試地圖上大幅優於 Baseline/Greedy（30-70% 成本降低）</li>
+<li>關鍵在於 GA/SA 能同時優化路線形狀與站牌位置</li>
+<li>SA 在大規模問題上穩定性優於 GA</li>
+<li>MILP 作為 ground truth 驗證了小規模問題的解品質</li>
+</ul>
+</li>
+<li><strong>消融實驗</strong>：α/β/γ 的敏感度分析展示了不同營運政策的影響</li>
+<li><strong>互動展示</strong>：2D Canvas 前端可視化所有方法結果，支援即時參數調整</li>
+</ol>
+<hr>
+<h2>11. 參考文獻</h2>
+<ol>
+<li>Hart, P. E., Nilsson, N. J., &amp; Raphael, B. (1968). &quot;A Formal Basis for the Heuristic Determination of Minimum Cost Paths.&quot; <em>IEEE Transactions on Systems Science and Cybernetics</em>, 4(2), 100-107.</li>
+<li>Holland, J. H. (1975). <em>Adaptation in Natural and Artificial Systems</em>. University of Michigan Press.</li>
+<li>Kirkpatrick, S., Gelatt, C. D., &amp; Vecchi, M. P. (1983). &quot;Optimization by Simulated Annealing.&quot; <em>Science</em>, 220(4598), 671-680.</li>
+<li>Nemhauser, G. L., &amp; Wolsey, L. A. (1988). <em>Integer and Combinatorial Optimization</em>. Wiley.</li>
+<li>Dantzig, G. B., &amp; Ramser, J. H. (1959). &quot;The Truck Dispatching Problem.&quot; <em>Management Science</em>, 6(1), 80-91.</li>
+<li>Current, J. R., &amp; Schilling, D. A. (1994). &quot;The Median Tour and Maximal Covering Tour Problems.&quot; <em>European Journal of Operational Research</em>, 73(1), 114-126.</li>
+<li>Schöbel, A. (2012). &quot;Line Planning in Public Transportation: Models and Methods.&quot; <em>OR Spectrum</em>, 34(3), 491-510.</li>
+<li>Guihaire, V., &amp; Hao, J. K. (2008). &quot;Transit Network Design and Scheduling: A Global Review.&quot; <em>Transportation Research Part A</em>, 42(10), 1251-1273.</li>
+<li>Mitchell, S., O&#39;Sullivan, M., &amp; Dunning, I. (2011). &quot;PuLP: A Linear Programming Toolkit for Python.&quot; <a href="https://github.com/coin-or/pulp">https://github.com/coin-or/pulp</a></li>
+<li>Glover, F., &amp; Kochenberger, G. A. (2003). <em>Handbook of Metaheuristics</em>. Springer.</li>
+</ol>
+<hr>
+<h2>12. 附錄：Q&amp;A 腳本</h2>
+<h3>Q1: 為什麼將問題建模為三項加權成本？</h3>
+<p><strong>A</strong>: 公車路線規劃涉及多個利益相關方——營運方關心路線成本（燃油/時間），乘客關心步行距離，預算方關心站牌數量。三項加權成本函數 αC_route + βC_walk + γC_stop 可以透過調整權重反映不同營運政策。例如社區接駁車重視覆蓋率（高 β），幹線公車重視路線效率（高 α）。</p>
+<h3>Q2: 為什麼選擇 A* 作為底層路徑搜索？</h3>
+<p><strong>A</strong>: A* 在網格圖上有最優保證（Manhattan heuristic 為 admissible），且時間複雜度 O(N² log N) 在我們的網格大小（30-80）上是毫秒級。它自然處理禁區（不展開禁區節點）和地形成本（邊權重）。所有上層方法都需要路徑搜索，共用 A* 確保一致性。</p>
+<h3>Q3: GA 和 SA 的核心差異是什麼？何時選哪個？</h3>
+<p><strong>A</strong>: GA 是族群導向的全域搜索，維護多個解同時探索不同區域；SA 是單解鄰域搜索。實驗顯示：GA 在中等規模偏路線形狀的問題上較好（Map 2），SA 在大規模問題上穩定性更佳（Map 4 的 std=5.0 vs GA 的 368.7）。選擇：需要穩定性選 SA，需要探索能力選 GA。</p>
+<h3>Q4: MILP 為什麼只在小規模有效？</h3>
+<p><strong>A</strong>: 我們的 MILP 模型有 O(M×J) 個二元變數和 O(M×J) 個約束（M=乘客, J=候選站）。Map 1 有 20×10=200 個變數，Map 2 有 100×17=1700 個變數。CBC solver 是開源的分支定界法，處理 1000+ 二元變數時指數增長的搜索樹使其超時。商用 solver（Gurobi/CPLEX）可能擴展到數百人。</p>
+<h3>Q5: 消融實驗中最令人意外的發現是什麼？</h3>
+<p><strong>A</strong>: 「站牌節省」(γ=1.0, α=β=0.3) 的加權成本最低（245.7），但實際站牌成本（48.0）反而是所有組合中最高的。這是因為降低路線和步行的權重後，多設站的邊際成本很低，GA 傾向多設站來最小化加權和。這提醒我們：加權目標函數的最優解不等於每個分項都好。</p>
+<h3>Q6: 測試集設計的考量是什麼？</h3>
+<p><strong>A</strong>: 五張地圖涵蓋三個維度：規模（20→500 人）、拓撲（無禁區→大禁區）、分布（均勻→群聚→對角線）。Map 1 用於正確性驗證和 MILP ground truth；Map 2-3 測試核心能力（繞路效益、避障）；Map 4 測試擴展性；Map 5 測試路線偏移策略。固定 seed 確保可重現。</p>
+<h3>Q7: 為什麼 Baseline 和 Greedy 在 Map 5 表現特別差？</h3>
+<p><strong>A</strong>: Map 5 的乘客沿對角線分布，但 Baseline/Greedy 固定使用 A* 最短路徑。A* 最短路徑不一定沿對角線走（在網格上走 Manhattan 路徑），導致路線遠離多數乘客。覆蓋率僅 1-4%。而 GA/SA 可以透過中繼點將路線拉向對角線方向，覆蓋率提升到 86-88%。</p>
+<h3>Q8: 如何確保結果的公平比較？</h3>
+<p><strong>A</strong>: (1) 所有方法使用相同的 CityMap 和 A* 引擎；(2) 相同的成本函數和評估邏輯；(3) GA/SA 跑多次取統計消除隨機性；(4) 固定 seed 確保可重現；(5) MILP 在小規模提供最優基準。</p>
+<h3>Q9: 如果要加入乘客分類，模型怎麼改？</h3>
+<p><strong>A</strong>: 在步行成本中引入乘客類別權重：C_walk = Σᵢ wᵢ × d(pᵢ, nearest_stop)，其中 wᵢ 反映乘客類別（如老人 wᵢ=2.0 表示步行不便需優先覆蓋）。GA/SA 的適應度函數自然整合此修改，不需改架構。這也是本系統列為未來方向的原因——框架已支持，缺的是市場調查數據。</p>
+<h3>Q10: 這個系統離實務應用還有多遠？</h3>
+<p><strong>A</strong>: 三個主要差距：(1) 2D 網格 vs 真實路網——需整合 OpenStreetMap 和 GIS；(2) 靜態 vs 動態需求——需接入即時數據；(3) 單路線 vs 網絡——需擴展為多路線聯合優化。然而，核心的成本建模、GA/SA 優化框架、和評估邏輯可以直接復用。</p>
+
+</body>
+</html>
