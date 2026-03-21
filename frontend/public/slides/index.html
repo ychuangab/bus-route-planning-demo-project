@@ -409,62 +409,8 @@ em { color: #90caf9; font-style: normal; }
 .highlight { color: #64b5f6; font-weight: bold; }
 ;color:#ffffff;background-color:#0d1117;background-image:none;">
 <h2 id="%E5%AF%A6%E9%A9%97%E7%B5%90%E6%9E%9C--%E7%B8%BD%E6%88%90%E6%9C%AC%E6%AF%94%E8%BC%83">實驗結果 — 總成本比較</h2>
-<table>
-<thead>
-<tr>
-<th>地圖</th>
-<th>Baseline</th>
-<th>Greedy</th>
-<th><strong>GA</strong></th>
-<th><strong>SA</strong></th>
-<th>MILP</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Map 1</td>
-<td>231</td>
-<td>220</td>
-<td>211</td>
-<td><strong>206</strong></td>
-<td>222</td>
-</tr>
-<tr>
-<td>Map 2</td>
-<td>1693</td>
-<td>1654</td>
-<td>595</td>
-<td><strong>571</strong></td>
-<td>2769*</td>
-</tr>
-<tr>
-<td>Map 3</td>
-<td>1481</td>
-<td>1391</td>
-<td><strong>979</strong></td>
-<td>992</td>
-<td>—</td>
-</tr>
-<tr>
-<td>Map 4</td>
-<td>10262</td>
-<td>9921</td>
-<td>5803</td>
-<td><strong>5635</strong></td>
-<td>—</td>
-</tr>
-<tr>
-<td>Map 5</td>
-<td>2460</td>
-<td>2314</td>
-<td>747</td>
-<td><strong>638</strong></td>
-<td>—</td>
-</tr>
-</tbody>
-</table>
-<p>*MILP Map 2 超時非最優解（固定路線無法繞向乘客群聚區，成本反而最高）</p>
-<p><strong>GA/SA 降低 30-70% 成本</strong> — 透過中繼點改變路線形狀</p>
+<p><img src="figures/fig01-total-cost.png" alt="" style="width:900px;" /></p>
+<p><strong>GA/SA 降低 30-70% 成本</strong> — MILP Map 2 超時解反而最差（固定路線的局限）</p>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="7" data-class="lead" data-background-color="#0d1117" data-color="#ffffff" data-theme="default" data-style="section {
   background: linear-gradient(135deg, #0d1117 0%, #1a237e 100%);
@@ -557,57 +503,9 @@ em { color: #90caf9; font-style: normal; }
 .highlight { color: #64b5f6; font-weight: bold; }
 ;color:#ffffff;background-color:#0d1117;background-image:none;">
 <h2 id="%E5%AF%A6%E9%A9%97%E7%B5%90%E6%9E%9C--%E8%A6%86%E8%93%8B%E7%8E%87--%E7%A9%A9%E5%AE%9A%E6%80%A7">實驗結果 — 覆蓋率 &amp; 穩定性</h2>
-<p><strong>覆蓋率（步行距離 ≤ 10 格的乘客比例）</strong>：</p>
-<table>
-<thead>
-<tr>
-<th>地圖</th>
-<th>Baseline</th>
-<th>Greedy</th>
-<th>GA</th>
-<th>SA</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Map 2</td>
-<td>13%</td>
-<td>14%</td>
-<td>99%</td>
-<td><strong>100%</strong></td>
-</tr>
-<tr>
-<td>Map 5</td>
-<td>1%</td>
-<td>4%</td>
-<td>84%</td>
-<td><strong>95%</strong></td>
-</tr>
-</tbody>
-</table>
-<p><strong>穩定性（10 次執行 mean±std）</strong>：</p>
-<table>
-<thead>
-<tr>
-<th>地圖</th>
-<th>GA</th>
-<th>SA</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Map 3</td>
-<td>1111±155</td>
-<td><strong>987±33</strong></td>
-</tr>
-<tr>
-<td>Map 4</td>
-<td>6102±334</td>
-<td><strong>5710±103</strong></td>
-</tr>
-</tbody>
-</table>
-<p>SA 在大規模問題上穩定性明顯優於 GA</p>
+<p><strong>覆蓋率</strong>：GA/SA 覆蓋率遠超 Baseline（Map 2: 13% → 100%，Map 5: 1% → 95%）</p>
+<p><img src="figures/fig03-stability-boxplot.png" alt="" style="width:900px;" /></p>
+<p>SA 在所有地圖上標準差均小於 GA，<strong>大規模問題穩定性明顯優於 GA</strong></p>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="9" data-class="lead" data-background-color="#0d1117" data-color="#ffffff" data-theme="default" data-style="section {
   background: linear-gradient(135deg, #0d1117 0%, #1a237e 100%);
@@ -653,62 +551,7 @@ em { color: #90caf9; font-style: normal; }
 .highlight { color: #64b5f6; font-weight: bold; }
 ;color:#ffffff;background-color:#0d1117;background-image:none;">
 <h2 id="%E6%B6%88%E8%9E%8D%E5%AF%A6%E9%A9%97map-2-%C3%97-ga">消融實驗（Map 2 × GA）</h2>
-<table>
-<thead>
-<tr>
-<th>策略</th>
-<th>α</th>
-<th>β</th>
-<th>γ</th>
-<th>加權成本</th>
-<th>路線</th>
-<th>步行</th>
-<th>站牌</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>均衡</td>
-<td>1.0</td>
-<td>1.0</td>
-<td>1.0</td>
-<td>595</td>
-<td>115</td>
-<td>438</td>
-<td>42</td>
-</tr>
-<tr>
-<td>乘客優先</td>
-<td>0.3</td>
-<td>1.0</td>
-<td>0.3</td>
-<td>528</td>
-<td>127</td>
-<td>477</td>
-<td>42</td>
-</tr>
-<tr>
-<td>營運優先</td>
-<td>1.0</td>
-<td>0.3</td>
-<td>0.3</td>
-<td>262</td>
-<td>105</td>
-<td>487</td>
-<td>36</td>
-</tr>
-<tr>
-<td>極端乘客</td>
-<td>0.1</td>
-<td>1.0</td>
-<td>0.1</td>
-<td>502</td>
-<td>119</td>
-<td>486</td>
-<td>42</td>
-</tr>
-</tbody>
-</table>
+<p><img src="figures/fig04-ablation-radar.png" alt="" style="width:550px;" /></p>
 <p><strong>政策啟示</strong>：社區接駁車 → 高 β（覆蓋優先）；幹線公車 → 高 α（效率優先）</p>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="10" data-class="lead" data-background-color="#0d1117" data-color="#ffffff" data-theme="default" data-style="section {
