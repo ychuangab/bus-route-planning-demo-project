@@ -6,10 +6,15 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { marked } from 'marked';
 
+// Node 18 compat: import.meta.dirname not available until Node 21
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Find repo root by walking up from this script until we find report/REPORT.md
-const FRONTEND = path.resolve(import.meta.dirname, '..');
+const FRONTEND = path.resolve(__dirname, '..');
 let ROOT = FRONTEND;
 for (let i = 0; i < 5; i++) {
   if (fs.existsSync(path.join(ROOT, 'report', 'REPORT.md'))) break;
