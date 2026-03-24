@@ -39,8 +39,33 @@
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
   onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+<style>
+body { padding-top: calc(2rem + 44px) !important; }
+.page-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  background: rgba(13,17,23,0.95); backdrop-filter: blur(8px);
+  border-bottom: 1px solid #30363d;
+  display: flex; justify-content: center; align-items: center; gap: 4px; height: 42px;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.page-nav a {
+  color: #8b949e; text-decoration: none; padding: 4px 14px;
+  border-radius: 6px; font-size: 0.875rem; font-weight: 500;
+  transition: color 0.15s, background 0.15s;
+}
+.page-nav a:hover { color: #e0e0e0; background: rgba(255,255,255,0.06); }
+.page-nav a.active { color: #64b5f6; font-weight: 600; }
+.page-nav .nav-sep { color: #30363d; line-height: 1; user-select: none; }
+</style>
 </head>
 <body>
+<nav class="page-nav">
+  <a href="/">Demo</a>
+  <span class="nav-sep">·</span>
+  <a href="/report/" class="active">Report</a>
+  <span class="nav-sep">·</span>
+  <a href="/slides/">Slides</a>
+</nav>
 <h1>公車路線與站點設置規劃 — 技術報告</h1>
 <blockquote>
 <p><strong>作者：</strong> Eason Huang
